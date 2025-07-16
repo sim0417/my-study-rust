@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Conway's Game of Life</title>
+    <style>
+      body {
+        font-family: "Arial", sans-serif;
+        margin: 0;
+        padding: 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: #333;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .container {
+        background: white;
+        border-radius: 15px;
+        padding: 30px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        max-width: 1200px;
+        width: 100%;
+      }
+
+      h1 {
+        text-align: center;
+        margin-bottom: 30px;
+        color: #4a4a4a;
+        font-size: 2.5em;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .controls {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+      }
+
+      button {
+        padding: 12px 24px;
+        font-size: 16px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+      }
+
+      .play-btn {
+        background: #4caf50;
+        color: white;
+      }
+
+      .pause-btn {
+        background: #ff9800;
+        color: white;
+      }
+
+      .clear-btn {
+        background: #f44336;
+        color: white;
+      }
+
+      .pattern-btn {
+        background: #2196f3;
+        color: white;
+      }
+
+      .info-btn {
+        background: #9c27b0;
+        color: white;
+      }
+
+      .engine-selector {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 20px;
+        padding: 15px;
+        background: #f0f0f0;
+        border-radius: 8px;
+      }
+
+      .engine-btn {
+        padding: 8px 16px;
+        border: 2px solid #ddd;
+        border-radius: 6px;
+        background: white;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .engine-btn.active {
+        background: #4caf50;
+        color: white;
+        border-color: #4caf50;
+      }
+
+      .engine-btn:not(.active):hover {
+        background: #f5f5f5;
+        border-color: #bbb;
+      }
+
+      #engine-status {
+        font-weight: bold;
+        margin-left: 10px;
+        color: #666;
+      }
+
+      /* 모달 스타일 */
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.4);
+      }
+
+      .modal-content {
+        background-color: #fefefe;
+        margin: 15% auto;
+        padding: 20px;
+        border: none;
+        border-radius: 10px;
+        width: 80%;
+        max-width: 600px;
+        position: relative;
+      }
+
+      .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+      }
+
+      .close:hover,
+      .close:focus {
+        color: black;
+        text-decoration: none;
+      }
+
+      .info-panel {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 20px;
+        padding: 15px;
+        background: #f5f5f5;
+        border-radius: 8px;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .info-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .info-label {
+        font-weight: bold;
+        margin-bottom: 5px;
+        color: #666;
+      }
+
+      .info-value {
+        font-size: 1.2em;
+        color: #333;
+        font-weight: bold;
+      }
+
+      .size-controls {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+
+      input[type="range"] {
+        width: 100px;
+      }
+
+      .canvas-container {
+        display: flex;
+        justify-content: center;
+        margin-top: 20px;
+        width: 100%;
+        max-width: 800px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      #game-of-life-canvas {
+        border: 3px solid #333;
+        border-radius: 8px;
+        cursor: crosshair;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      }
+
+      .pattern-selector {
+        margin-bottom: 20px;
+      }
+
+      .pattern-selector label {
+        font-weight: bold;
+        margin-right: 10px;
+        color: #666;
+      }
+
+      select {
+        padding: 8px 12px;
+        border: 2px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+        background: white;
+        cursor: pointer;
+      }
+
+      .fps-counter {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 10px 15px;
+        border-radius: 8px;
+        font-family: monospace;
+        font-size: 14px;
+      }
+
+      .instructions {
+        margin-top: 30px;
+        padding: 20px;
+        background: #e8f4f8;
+        border-radius: 8px;
+        border-left: 4px solid #2196f3;
+      }
+
+      .instructions h3 {
+        margin-top: 0;
+        color: #1976d2;
+      }
+
+      .instructions ul {
+        margin: 10px 0;
+        padding-left: 20px;
+      }
+
+      .instructions li {
+        margin: 5px 0;
+      }
+
+      @media (max-width: 768px) {
+        .container {
+          padding: 20px;
+        }
+
+        h1 {
+          font-size: 2em;
+        }
+
+        .controls {
+          gap: 10px;
+        }
+
+        button {
+          padding: 10px 20px;
+          font-size: 14px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🧬 Conway's Game of Life</h1>
+
+      <div class="info-panel">
+        <div class="info-item">
+          <div class="info-label">Generation</div>
+          <div class="info-value" id="generation-counter">0</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Live Cells</div>
+          <div class="info-value" id="live-cells-counter">0</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Size</div>
+          <div class="info-value" id="universe-size">64x64</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">FPS</div>
+          <div class="info-value" id="fps-counter">0</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Tick Time</div>
+          <div class="info-value" id="tick-time">0ms</div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button id="play-pause" class="play-btn">▶️ Play</button>
+        <button id="clear" class="clear-btn">🗑️ Clear</button>
+        <button id="random" class="pattern-btn">🎲 Random</button>
+        <button id="info-btn" class="info-btn">ℹ️ Info</button>
+      </div>
+
+      <div class="engine-selector">
+        <label>Engine:</label>
+        <button id="js-engine" class="engine-btn active">JavaScript</button>
+        <button id="wasm-engine" class="engine-btn">WebAssembly</button>
+        <span id="engine-status">JavaScript Engine Active</span>
+      </div>
+
+      <div class="pattern-selector">
+        <label for="pattern-select">Load Pattern:</label>
+        <select id="pattern-select">
+          <option value="">Select a pattern...</option>
+          <option value="glider">Glider</option>
+          <option value="pulsar">Pulsar</option>
+          <option value="beacon">Beacon</option>
+          <option value="toad">Toad</option>
+          <option value="spaceship">Spaceship</option>
+        </select>
+      </div>
+
+      <div class="size-controls">
+        <label for="size-slider">Universe Size:</label>
+        <input
+          type="range"
+          id="size-slider"
+          min="32"
+          max="128"
+          value="64"
+          step="8"
+        />
+        <span id="size-display">64</span>
+      </div>
+
+      <div class="canvas-container">
+        <canvas id="game-of-life-canvas"></canvas>
+      </div>
+
+      <!-- 모달 구조 -->
+      <div id="info-modal" class="modal">
+        <div class="modal-content">
+          <span class="close">&times;</span>
+          <div class="instructions">
+            <h3>사용 방법</h3>
+            <ul>
+              <li>캔버스를 클릭하여 개별 셀을 토글할 수 있습니다</li>
+              <li>크기 슬라이더를 사용하여 우주의 크기를 조정하세요</li>
+              <li>
+                미리 정의된 패턴을 로드하여 클래식한 생명게임 형태를 관찰하세요
+              </li>
+              <li>
+                성능 카운터를 통해 브라우저가 시뮬레이션을 어떻게 처리하는지
+                확인하세요
+              </li>
+            </ul>
+            <p><strong>콘웨이 생명게임 규칙:</strong></p>
+            <ul>
+              <li>
+                살아있는 셀이 2개 미만의 이웃을 가지면 죽습니다 (과소집단)
+              </li>
+              <li>
+                살아있는 셀이 2개 또는 3개의 이웃을 가지면 다음 세대로
+                생존합니다
+              </li>
+              <li>
+                살아있는 셀이 3개를 초과하는 이웃을 가지면 죽습니다 (과밀집단)
+              </li>
+              <li>
+                죽은 셀이 정확히 3개의 이웃을 가지면 살아있는 셀이 됩니다 (번식)
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="fps-counter" id="fps-display">FPS: 0</div>
+
+    <script type="module">
+      // Dual Engine Game of Life implementation
+      const CELL_SIZE = 5; // px
+      const GRID_COLOR = "#CCCCCC";
+      const DEAD_COLOR = "#FFFFFF";
+      const ALIVE_COLOR = "#000000";
+
+      let animationId = null;
+      let universe = null;
+      let canvas = null;
+      let ctx = null;
+      let generation = 0;
+      let isPlaying = false;
+      let currentEngine = "js"; // 'js' or 'wasm'
+      let wasmUniverse = null;
+      let wasmModule = null;
+
+      // FPS tracking
+      let lastFrameTime = 0;
+      let frameCount = 0;
+      let fps = 0;
+
+      // JavaScript Game of Life class
+      class GameOfLife {
+        constructor(width, height) {
+          this.width = width;
+          this.height = height;
+          this.cells = this.createEmptyGrid();
+          this.initializeWithPattern();
+        }
+
+        createEmptyGrid() {
+          return Array(this.height)
+            .fill()
+            .map(() => Array(this.width).fill(false));
+        }
+
+        initializeWithPattern() {
+          // Create some initial pattern
+          for (let row = 0; row < this.height; row++) {
+            for (let col = 0; col < this.width; col++) {
+              this.cells[row][col] =
+                (row + col) % 2 === 0 || (row * col) % 7 === 0;
+            }
+          }
+        }
+
+        tick() {
+          const newCells = this.createEmptyGrid();
+
+          for (let row = 0; row < this.height; row++) {
+            for (let col = 0; col < this.width; col++) {
+              const liveNeighbors = this.countLiveNeighbors(row, col);
+              const isAlive = this.cells[row][col];
+
+              if (isAlive) {
+                newCells[row][col] = liveNeighbors === 2 || liveNeighbors === 3;
+              } else {
+                newCells[row][col] = liveNeighbors === 3;
+              }
+            }
+          }
+
+          this.cells = newCells;
+        }
+
+        countLiveNeighbors(row, col) {
+          let count = 0;
+          for (let deltaRow = -1; deltaRow <= 1; deltaRow++) {
+            for (let deltaCol = -1; deltaCol <= 1; deltaCol++) {
+              if (deltaRow === 0 && deltaCol === 0) continue;
+
+              const newRow = (row + deltaRow + this.height) % this.height;
+              const newCol = (col + deltaCol + this.width) % this.width;
+
+              if (this.cells[newRow][newCol]) count++;
+            }
+          }
+          return count;
+        }
+
+        clear() {
+          this.cells = this.createEmptyGrid();
+        }
+
+        random() {
+          for (let row = 0; row < this.height; row++) {
+            for (let col = 0; col < this.width; col++) {
+              this.cells[row][col] = Math.random() < 0.5;
+            }
+          }
+        }
+
+        loadPattern(pattern) {
+          this.clear();
+          const centerRow = Math.floor(this.height / 2);
+          const centerCol = Math.floor(this.width / 2);
+
+          let cells = [];
+          switch (pattern) {
+            case "glider":
+              cells = [
+                [1, 2],
+                [2, 3],
+                [3, 1],
+                [3, 2],
+                [3, 3],
+              ];
+              break;
+            case "beacon":
+              cells = [
+                [1, 1],
+                [1, 2],
+                [2, 1],
+                [2, 2],
+                [3, 3],
+                [3, 4],
+                [4, 3],
+                [4, 4],
+              ];
+              break;
+            case "toad":
+              cells = [
+                [2, 2],
+                [2, 3],
+                [2, 4],
+                [3, 1],
+                [3, 2],
+                [3, 3],
+              ];
+              break;
+          }
+
+          cells.forEach(([row, col]) => {
+            const newRow = (centerRow + row) % this.height;
+            const newCol = (centerCol + col) % this.width;
+            this.cells[newRow][newCol] = true;
+          });
+        }
+
+        toggleCell(row, col) {
+          this.cells[row][col] = !this.cells[row][col];
+        }
+
+        resize(width, height) {
+          this.width = width;
+          this.height = height;
+          this.cells = this.createEmptyGrid();
+        }
+
+        getLiveCells() {
+          let count = 0;
+          for (let row = 0; row < this.height; row++) {
+            for (let col = 0; col < this.width; col++) {
+              if (this.cells[row][col]) count++;
+            }
+          }
+          return count;
+        }
+      }
+
+      // WebAssembly 초기화
+      async function initWasm() {
+        try {
+          const wasmImport = await import("./pkg/game_of_life.js");
+          await wasmImport.default();
+          wasmModule = wasmImport;
+          console.log("WebAssembly module loaded successfully!");
+          return true;
+        } catch (error) {
+          console.error("Failed to load WebAssembly module:", error);
+          return false;
+        }
+      }
+
+      // WebAssembly 래퍼 클래스
+      class WasmWrapper {
+        constructor(width, height) {
+          this.wasmInstance = null;
+          this.isValid = false;
+          this.init(width, height);
+        }
+
+        init(width, height) {
+          try {
+            if (wasmModule && wasmModule.Universe) {
+              this.wasmInstance = wasmModule.Universe.new(width, height);
+              this.isValid = true;
+              console.log("WebAssembly Universe created successfully");
+            } else {
+              console.error("WebAssembly module not loaded");
+              this.isValid = false;
+            }
+          } catch (error) {
+            console.error("Failed to create WebAssembly Universe:", error);
+            this.isValid = false;
+          }
+        }
+
+        tick() {
+          if (!this.isValid || !this.wasmInstance) return;
+          try {
+            this.wasmInstance.tick();
+          } catch (error) {
+            console.error("WebAssembly tick error:", error);
+            this.isValid = false;
+          }
+        }
+
+        clear() {
+          if (!this.isValid || !this.wasmInstance) return;
+          try {
+            this.wasmInstance.clear();
+          } catch (error) {
+            console.error("WebAssembly clear error:", error);
+          }
+        }
+
+        loadPattern(pattern) {
+          if (!this.isValid || !this.wasmInstance) return;
+          try {
+            this.wasmInstance.load_pattern(pattern);
+          } catch (error) {
+            console.error("WebAssembly loadPattern error:", error);
+          }
+        }
+
+        toggleCell(row, col) {
+          if (!this.isValid || !this.wasmInstance) return;
+          try {
+            this.wasmInstance.toggle_cell(row, col);
+          } catch (error) {
+            console.error("WebAssembly toggleCell error:", error);
+          }
+        }
+
+        resize(width, height) {
+          try {
+            if (this.wasmInstance) {
+              this.wasmInstance.free();
+            }
+            this.init(width, height);
+          } catch (error) {
+            console.error("WebAssembly resize error:", error);
+          }
+        }
+
+        random() {
+          if (!this.isValid || !this.wasmInstance) return;
+          try {
+            const width = this.wasmInstance.width();
+            const height = this.wasmInstance.height();
+            if (this.wasmInstance) {
+              this.wasmInstance.free();
+            }
+            this.wasmInstance = wasmModule.Universe.random(width, height);
+            this.isValid = true;
+          } catch (error) {
+            console.error("WebAssembly random error:", error);
+            this.isValid = false;
+          }
+        }
+
+        getLiveCells() {
+          if (!this.isValid || !this.wasmInstance) return 0;
+          try {
+            const stats = this.wasmInstance.get_stats();
+            const match = stats.match(/Live cells: (\d+)/);
+            return match ? parseInt(match[1]) : 0;
+          } catch (error) {
+            console.error("WebAssembly getLiveCells error:", error);
+            return 0;
+          }
+        }
+
+        render() {
+          if (!this.isValid || !this.wasmInstance) return "";
+          try {
+            return this.wasmInstance.render();
+          } catch (error) {
+            console.error("WebAssembly render error:", error);
+            return "";
+          }
+        }
+
+        get width() {
+          if (!this.isValid || !this.wasmInstance) return 64;
+          try {
+            return this.wasmInstance.width();
+          } catch (error) {
+            console.error("WebAssembly width error:", error);
+            return 64;
+          }
+        }
+
+        get height() {
+          if (!this.isValid || !this.wasmInstance) return 64;
+          try {
+            return this.wasmInstance.height();
+          } catch (error) {
+            console.error("WebAssembly height error:", error);
+            return 64;
+          }
+        }
+
+        destroy() {
+          if (this.wasmInstance) {
+            try {
+              this.wasmInstance.free();
+            } catch (error) {
+              console.error("WebAssembly destroy error:", error);
+            }
+          }
+          this.wasmInstance = null;
+          this.isValid = false;
+        }
+      }
+
+      // 엔진 전환 함수
+      async function switchEngine(engine) {
+        if (isPlaying) {
+          pause();
+        }
+
+        // 기존 WASM 인스턴스 정리
+        if (universe && universe.destroy) {
+          universe.destroy();
+        }
+
+        currentEngine = engine;
+
+        if (engine === "wasm") {
+          if (!wasmModule) {
+            document.getElementById("engine-status").textContent =
+              "Loading WebAssembly...";
+            const loaded = await initWasm();
+            if (!loaded) {
+              document.getElementById("engine-status").textContent =
+                "WebAssembly Load Failed - Using JavaScript";
+              // 폴백: JavaScript 엔진 사용
+              currentEngine = "js";
+              universe = new GameOfLife(64, 64);
+              document.getElementById("js-engine").classList.add("active");
+              document.getElementById("wasm-engine").classList.remove("active");
+              document.getElementById("engine-status").textContent =
+                "JavaScript Engine Active (WebAssembly Failed)";
+              return;
+            }
+          }
+
+          // WebAssembly 래퍼 사용
+          universe = new WasmWrapper(64, 64);
+
+          if (!universe.isValid) {
+            console.error(
+              "Failed to create WebAssembly wrapper, falling back to JavaScript"
+            );
+            currentEngine = "js";
+            universe = new GameOfLife(64, 64);
+            document.getElementById("js-engine").classList.add("active");
+            document.getElementById("wasm-engine").classList.remove("active");
+            document.getElementById("engine-status").textContent =
+              "JavaScript Engine Active (WebAssembly Failed)";
+            return;
+          }
+
+          document.getElementById("engine-status").textContent =
+            "WebAssembly Engine Active";
+        } else {
+          // JavaScript 유니버스 생성
+          universe = new GameOfLife(64, 64);
+          document.getElementById("engine-status").textContent =
+            "JavaScript Engine Active";
+        }
+
+        generation = 0;
+        updateCanvasSize();
+        drawCells();
+        updateStats();
+      }
+
+      async function run() {
+        canvas = document.getElementById("game-of-life-canvas");
+        ctx = canvas.getContext("2d");
+
+        // Initialize with JavaScript engine
+        universe = new GameOfLife(64, 64);
+        updateCanvasSize();
+
+        // Event listeners
+        setupEventListeners();
+
+        // Start rendering
+        drawCells();
+        updateStats();
+
+        console.log("Game of Life initialized successfully!");
+      }
+
+      function setupEventListeners() {
+        // Play/Pause button
+        document.getElementById("play-pause").addEventListener("click", () => {
+          if (isPlaying) {
+            pause();
+          } else {
+            play();
+          }
+        });
+
+        // Clear button
+        document.getElementById("clear").addEventListener("click", () => {
+          universe.clear();
+          generation = 0;
+          drawCells();
+          updateStats();
+        });
+
+        // Random button
+        document.getElementById("random").addEventListener("click", () => {
+          universe.random();
+          generation = 0;
+          drawCells();
+          updateStats();
+        });
+
+        // Info button (modal)
+        document.getElementById("info-btn").addEventListener("click", () => {
+          document.getElementById("info-modal").style.display = "block";
+        });
+
+        // Close modal
+        document.querySelector(".close").addEventListener("click", () => {
+          document.getElementById("info-modal").style.display = "none";
+        });
+
+        // Close modal when clicking outside
+        window.addEventListener("click", (event) => {
+          const modal = document.getElementById("info-modal");
+          if (event.target === modal) {
+            modal.style.display = "none";
+          }
+        });
+
+        // Engine switching
+        document
+          .getElementById("js-engine")
+          .addEventListener("click", async () => {
+            await switchEngine("js");
+            document.getElementById("js-engine").classList.add("active");
+            document.getElementById("wasm-engine").classList.remove("active");
+          });
+
+        document
+          .getElementById("wasm-engine")
+          .addEventListener("click", async () => {
+            await switchEngine("wasm");
+            document.getElementById("wasm-engine").classList.add("active");
+            document.getElementById("js-engine").classList.remove("active");
+          });
+
+        // Pattern selector
+        document
+          .getElementById("pattern-select")
+          .addEventListener("change", (e) => {
+            if (e.target.value) {
+              universe.loadPattern(e.target.value);
+              generation = 0;
+              drawCells();
+              updateStats();
+              e.target.value = "";
+            }
+          });
+
+        // Size slider
+        const sizeSlider = document.getElementById("size-slider");
+        sizeSlider.addEventListener("input", (e) => {
+          const size = parseInt(e.target.value);
+          document.getElementById("size-display").textContent = size;
+          universe.resize(size, size);
+          updateCanvasSize();
+          generation = 0;
+          drawCells();
+          updateStats();
+        });
+
+        // Canvas click
+        canvas.addEventListener("click", (event) => {
+          const boundingRect = canvas.getBoundingClientRect();
+          const scaleX = canvas.width / boundingRect.width;
+          const scaleY = canvas.height / boundingRect.height;
+
+          const canvasLeft = (event.clientX - boundingRect.left) * scaleX;
+          const canvasTop = (event.clientY - boundingRect.top) * scaleY;
+
+          const height = universe.height;
+          const width = universe.width;
+
+          const row = Math.min(
+            Math.floor(canvasTop / (CELL_SIZE + 1)),
+            height - 1
+          );
+          const col = Math.min(
+            Math.floor(canvasLeft / (CELL_SIZE + 1)),
+            width - 1
+          );
+
+          universe.toggleCell(row, col);
+          drawCells();
+          updateStats();
+        });
+      }
+
+      function updateCanvasSize() {
+        const width = universe.width;
+        const height = universe.height;
+
+        canvas.width = (CELL_SIZE + 1) * width + 1;
+        canvas.height = (CELL_SIZE + 1) * height + 1;
+
+        document.getElementById(
+          "universe-size"
+        ).textContent = `${width}x${height}`;
+      }
+
+      function play() {
+        isPlaying = true;
+        document.getElementById("play-pause").textContent = "⏸️ Pause";
+        document.getElementById("play-pause").className = "pause-btn";
+        renderLoop();
+      }
+
+      function pause() {
+        isPlaying = false;
+        document.getElementById("play-pause").textContent = "▶️ Play";
+        document.getElementById("play-pause").className = "play-btn";
+        if (animationId) {
+          cancelAnimationFrame(animationId);
+          animationId = null;
+        }
+      }
+
+      function renderLoop() {
+        if (!isPlaying) return;
+
+        // FPS calculation
+        const now = performance.now();
+        frameCount++;
+        if (now - lastFrameTime >= 1000) {
+          fps = Math.round((frameCount * 1000) / (now - lastFrameTime));
+          frameCount = 0;
+          lastFrameTime = now;
+          document.getElementById("fps-counter").textContent = fps;
+          document.getElementById("fps-display").textContent = `FPS: ${fps}`;
+        }
+
+        // 성능 측정 - tick 시간
+        const tickStart = performance.now();
+        universe.tick();
+        const tickEnd = performance.now();
+        const tickTime = (tickEnd - tickStart).toFixed(2);
+        document.getElementById("tick-time").textContent = `${tickTime}ms`;
+
+        generation++;
+
+        drawCells();
+        updateStats();
+
+        animationId = requestAnimationFrame(renderLoop);
+      }
+
+      function drawGrid() {
+        const width = universe.width;
+        const height = universe.height;
+
+        ctx.beginPath();
+        ctx.strokeStyle = GRID_COLOR;
+
+        // Vertical lines
+        for (let i = 0; i <= width; i++) {
+          ctx.moveTo(i * (CELL_SIZE + 1) + 1, 0);
+          ctx.lineTo(i * (CELL_SIZE + 1) + 1, (CELL_SIZE + 1) * height + 1);
+        }
+
+        // Horizontal lines
+        for (let j = 0; j <= height; j++) {
+          ctx.moveTo(0, j * (CELL_SIZE + 1) + 1);
+          ctx.lineTo((CELL_SIZE + 1) * width + 1, j * (CELL_SIZE + 1) + 1);
+        }
+
+        ctx.stroke();
+      }
+
+      function drawCells() {
+        const width = universe.width;
+        const height = universe.height;
+
+        // 캔버스 클리어
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // 그리드 그리기
+        drawGrid();
+
+        ctx.beginPath();
+
+        if (currentEngine === "wasm") {
+          // WebAssembly 버전 - render() 문자열 사용
+          try {
+            const renderString = universe.render();
+            const lines = renderString.split("\n");
+
+            for (let row = 0; row < height && row < lines.length; row++) {
+              const line = lines[row];
+              for (let col = 0; col < width && col < line.length; col++) {
+                const cellChar = line[col];
+                const isAlive = cellChar === "◼";
+
+                ctx.fillStyle = isAlive ? ALIVE_COLOR : DEAD_COLOR;
+                ctx.fillRect(
+                  col * (CELL_SIZE + 1) + 1,
+                  row * (CELL_SIZE + 1) + 1,
+                  CELL_SIZE,
+                  CELL_SIZE
+                );
+              }
+            }
+          } catch (error) {
+            console.error("WebAssembly render error:", error);
+            // 폴백: 간단한 패턴
+            for (let row = 0; row < height; row++) {
+              for (let col = 0; col < width; col++) {
+                const isAlive = (row + col) % 7 === 0;
+                ctx.fillStyle = isAlive ? ALIVE_COLOR : DEAD_COLOR;
+                ctx.fillRect(
+                  col * (CELL_SIZE + 1) + 1,
+                  row * (CELL_SIZE + 1) + 1,
+                  CELL_SIZE,
+                  CELL_SIZE
+                );
+              }
+            }
+          }
+        } else {
+          // JavaScript 버전 - cells 배열 직접 사용
+          for (let row = 0; row < height; row++) {
+            for (let col = 0; col < width; col++) {
+              const isAlive = universe.cells[row][col];
+
+              ctx.fillStyle = isAlive ? ALIVE_COLOR : DEAD_COLOR;
+              ctx.fillRect(
+                col * (CELL_SIZE + 1) + 1,
+                row * (CELL_SIZE + 1) + 1,
+                CELL_SIZE,
+                CELL_SIZE
+              );
+            }
+          }
+        }
+
+        ctx.stroke();
+      }
+
+      function updateStats() {
+        try {
+          const liveCells = universe.getLiveCells();
+          document.getElementById("live-cells-counter").textContent = liveCells;
+          document.getElementById("generation-counter").textContent =
+            generation;
+        } catch (e) {
+          console.error("Error updating stats:", e);
+        }
+      }
+
+      run().catch(console.error);
+    </script>
+  </body>
+</html>
